@@ -1,9 +1,30 @@
-/*
- * Management also wants to create a "best sellers" list for each category.
- *
- * Write a SQL query that:
- * For each category, reports the five films that have been rented the most for each category.
- *
- * Note that in the last query, we were ranking films by the total amount of payments made,
- * but in this query, you are ranking by the total number of times the movie has been rented (and ignoring the price).
- */
+with film_rentals as (
+    select
+        c.name,
+        f.title,
+        count(*) as "total rentals"
+    from category c
+    join film_category fc using (category_id)
+    join film f using (film_id)
+    join inventory i using (film_id)
+    join rental r using (inventory_id)
+    group by c.category_id, c.name, f.film_id, f.title
+),
+ranked as (
+    select
+        name,
+        title,
+        "total rentals",
+        row_number() over (
+            partition by name
+            order by "total rentals" desc, title desc
+        ) as rn
+    from film_rentals
+)
+select
+    name,
+    title,
+    "total rentals"
+from ranked
+where rn <= 5
+order by name asc, "total rentals" desc, title asc;
